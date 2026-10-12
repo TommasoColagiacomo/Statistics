@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework 2 - Ethereum Wallet Pipeline & Cryptographic Primitives</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      line-height: 1.6;
+      background-color: #fff;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 5px; }
+    h2 { font-size: 1.3rem; margin-top: 35px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    h3 { font-size: 1.1rem; margin-top: 20px; color: #111; }
+    .subtitle { color: #666; margin-bottom: 30px; font-size: 1rem; }
+    .step { margin-bottom: 25px; padding-left: 15px; border-left: 3px solid #0066cc; }
+    .step-title { font-weight: bold; font-size: 1.05rem; color: #004499; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background-color: #f7f7f7; }
+    code { background: #f4f4f4; padding: 2px 5px; font-size: 0.9em; border-radius: 3px; font-family: monospace; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>Homework 2: Ethereum Wallet Pipeline & Primitives</h1>
+  <div class="subtitle">Detailed breakdown of key derivation, asymmetric cryptography, hashing, and checksums</div>
+
+  <h2>1. Comprehensive Wallet Derivation Pipeline</h2>
+
+  <div class="step">
+    <div class="step-title">1. Mnemonic Sentence & Seed Generation (BIP-39)</div>
+    <p>
+      Computers generate a cryptographically secure random number (128 to 256 bits of raw entropy). To make this user-friendly, a short SHA-256 checksum is appended, and the sequence is split into 11-bit chunks. Each chunk corresponds to a specific word in a standardized 2,048-word dictionary, forming a 12-to-24 word mnemonic phrase.
+    </p>
+    <p>
+      To obtain a usable cryptographic key, the mnemonic (along with an optional passphrase) is stretched using the <strong>PBKDF2</strong> algorithm with 2,040 iterations of <code>HMAC-SHA512</code>. This computationally intensive process outputs a deterministic <strong>512-bit Master Seed</strong>, making brute-force attacks significantly harder.
+    </p>
+  </div>
+
+  <div class="step">
+    <div class="step-title">2. Hierarchical Deterministic Key Derivation (BIP-32 & BIP-44)</div>
+    <p>
+      The 512-bit seed is split into a 256-bit <em>Master Private Key</em> and a 256-bit <em>Chain Code</em>. Under <strong>BIP-32</strong>, the chain code acts as extra entropy allowing parent keys to deterministically generate an infinite tree of child keypairs without exposing the master key.
+    </p>
+    <p>
+      <strong>BIP-44</strong> enforces a multi-level derivation path across wallets:
+      <br>
+      <code>m / 44' / coin_type' / account' / change / address_index</code>
+      <br>
+      For Ethereum, <code>coin_type</code> is registered as <code>60'</code>. The default single-account path <code>m/44'/60'/0'/0/0</code> guarantees that any wallet software (e.g., MetaMask, Rabby, Exodus) deriving keys from the same seed will always recover the exact same Ethereum addresses.
+    </p>
+  </div>
+
+  <div class="step">
+    <div class="step-title">3. Elliptic Curve Public Key Generation (secp256k1)</div>
+    <p>
+      The derived child key is a 256-bit scalar integer (the Private Key <em>k</em>). To generate the Public Key <em>Q</em>, the private key undergoes scalar point multiplication with the fixed generator point <em>G</em> on the <strong>secp256k1</strong> curve (<code>y² = x³ + 7 mod p</code>):
+      <br>
+      <code>Q = k · G = (x, y)</code>
+    </p>
+    <p>
+      The resulting uncompressed public key consists of two 256-bit (32-byte) coordinates concatenated together (<code>x || y</code>), yielding a 64-byte payload (often prefixed with <code>0x04</code> to signal uncompressed format).
+    </p>
+  </div>
+
+  <div class="step">
+    <div class="step-title">4. Address Hashing (Keccak-256)</div>
+    <p>
+      The 64-byte uncompressed public key (excluding the <code>0x04</code> prefix) is passed into the <strong>Keccak-256</strong> hash function, returning a 32-byte digest. To keep account identifiers compact on-chain, Ethereum truncates this hash: the <strong>last 20 bytes (160 bits)</strong> are kept to form the raw Ethereum address.
+    </p>
+  </div>
+
+  <div class="step">
+    <div class="step-title">5. Checksum Encoding (EIP-55)</div>
+    <p>
+      Raw Ethereum hex addresses are entirely lowercase and contain no built-in error detection. <strong>EIP-55</strong> introduces a backward-compatible checksum by capitalizing specific hexadecimal letters based on the Keccak-256 hash of the lowercase address string. If the $i$-th character's corresponding hash nibble is $\ge 8$, that letter is capitalized; otherwise, it stays lowercase. A typing mistake alters the hash, causing the checksum verification to fail immediately.
+    </p>
+  </div>
+
+  <h2>2. Categorization of Cryptographic Concepts</h2>
+  <table>
+    <tr>
+      <th>Category</th>
+      <th>Primitives / Standards</th>
+      <th>Core Role & Guarantee</th>
+    </tr>
+    <tr>
+      <td><strong>Key Generation & Derivation</strong></td>
+      <td>BIP-39, BIP-32, BIP-44, PBKDF2</td>
+      <td>Translates human-rememberable words into a deterministic, infinite tree of accounts without storing individual keys.</td>
+    </tr>
+    <tr>
+      <td><strong>Public-Key Cryptography</strong></td>
+      <td>secp256k1 (ECDSA)</td>
+      <td>Provides a trapdoor function ($k \to Q$) allowing transaction signing and ownership verification without revealing the private key.</td>
+    </tr>
+    <tr>
+      <td><strong>Hashing</strong></td>
+      <td>Keccak-256</td>
+      <td>Compresses a 64-byte public key to a 32-byte output; destroys structure to prevent reverse algebraic mapping.</td>
+    </tr>
+    <tr>
+      <td><strong>Checksum & Encoding</strong></td>
+      <td>EIP-55, Hex (Base16)</td>
+      <td>Adds zero-overhead typo detection and converts raw binary key arrays into human-readable strings.</td>
+    </tr>
+  </table>
+
+  <h2>3. Historical Chronology & Evolution</h2>
+  <ul>
+    <li><strong>1977 — RSA:</strong> The pioneering asymmetric public-key cryptosystem based on prime factorization.</li>
+    <li><strong>2001 — SHA-2 (SHA-512):</strong> Standardized by NIST based on the Merkle-Damgård construction.</li>
+    <li><strong>2012 — BIP-32:</strong> Introduced Hierarchical Deterministic (HD) wallets to simplify key management in Bitcoin.</li>
+    <li><strong>2013 — BIP-39:</strong> Standardized mnemonic seed phrases for human-friendly wallet backups.</li>
+    <li><strong>2014 — BIP-44:</strong> Standardized multi-account, multi-coin derivation paths.</li>
+    <li><strong>2015 — SHA-3 (NIST FIPS 202):</strong> NIST formally finalized SHA-3 based on the Keccak sponge algorithm.</li>
+    <li><strong>2016 — EIP-55:</strong> Vitalik Buterin introduced mixed-case checksum encoding for Ethereum addresses.</li>
+  </ul>
+
+  <h2>4. Critical Differences & Technical Questions</h2>
+
+  <h3>Keccak-256 vs. Standardized SHA3-256</h3>
+  <p>
+    Although SHA-3 is derived from Keccak, <strong>Keccak-256 is not identical to SHA3-256</strong>. 
+    Ethereum adopted the original Keccak implementation in 2014, months before NIST published the official FIPS 202 SHA-3 standard in August 2015. 
+  </p>
+  <p>
+    During finalization, NIST added a 2-bit domain separation padding rule (appending <code>0x06</code>) to distinguish different SHA-3 variants. The original Keccak algorithm used padding starting with <code>0x01</code>. Because the underlying message padding is different, hashing the exact same string with Keccak-256 and SHA3-256 results in two completely different output hashes. Ethereum kept original Keccak-256 to maintain EVM opcode backward compatibility.
+  </p>
+
+  <h3>Why use multiple distinct algorithms instead of one single primitive?</h3>
+  <p>
+    A single cryptographic primitive cannot simultaneously satisfy security, usability, efficiency, and safety requirements across a blockchain stack:
+  </p>
+  <ul>
+    <li><strong>BIP-39/32/44 solve Key Management:</strong> Raw 256-bit numbers cannot be easily memorized or backed up by humans. HD standards bridge human memory (12 words) to structured tree derivations.</li>
+    <li><strong>secp256k1 solves Identity & Authorization:</strong> Public-key math allows users to sign transactions off-chain and prove ownership on-chain without revealing private keys.</li>
+    <li><strong>Keccak-256 solves Storage & Privacy:</strong> Public keys are 64 bytes. Hashing and truncating them to 20-byte addresses reduces state storage costs on the EVM and adds a layer of privacy (the public key is hidden until an outbound transaction is sent).</li>
+    <li><strong>EIP-55 solves Operational Safety:</strong> Prevents catastrophic user typos when pasting addresses, without requiring extra bytes or changing the address length.</li>
+  </ul>
+
+</body>
+</html>

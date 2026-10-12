@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework 1 - Toy Elliptic Curve</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 750px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      line-height: 1.6;
+      background-color: #fff;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 5px; }
+    h2 { font-size: 1.3rem; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    label { font-weight: 600; }
+    input[type="number"] { width: 60px; padding: 5px; font-size: 1rem; }
+    button { padding: 6px 14px; font-size: 0.95rem; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background-color: #f7f7f7; }
+    .result { margin-top: 15px; font-weight: bold; background: #f0f7ff; padding: 10px; border-left: 3px solid #0066cc; }
+  </style>
+</head>
+<body>
+
+  <h1>Homework 1: Public-Key Cryptography in Ethereum</h1>
+  <div class="subtitle">Private Key to Public Key using a Toy Elliptic Curve: y² = x³ + 7 (mod 17)</div>
+
+  <h2>1. Interactive Scalar Multiplication</h2>
+  <p>Base point <strong>G = (1, 5)</strong> on curve mod 17. Enter a private key k to compute the public key Q = kG:</p>
+  
+  <div>
+    <label for="kVal">Private Key (k): </label>
+    <input type="number" id="kVal" value="6" min="1" max="18">
+    <button onclick="runCalculation()">Compute Public Key</button>
+  </div>
+
+  <div id="output"></div>
+
+  <h2>2. Statistical Exploration & Findings</h2>
+  <p>
+    When testing different values of k with the point G(1,5) over the finite field Z_17, several interesting patterns emerge:
+  </p>
+  <ul>
+    <li><strong>Coordinate Distribution:</strong> Not every number between 0 and 16 appears as an x or y coordinate. Since y² = x³ + 7 (mod 17) only yields points when the right side is a quadratic residue, valid coordinates are scattered across the grid with gaps.</li>
+    <li><strong>Apparent Uniformity & Avalanche:</strong> As k increases linearly (1, 2, 3...), the resulting point jumps around unpredictably on the 17x17 field. Small changes in k (like going from k=5 to k=6) lead to completely different coordinates rather than nearby points.</li>
+    <li><strong>Input/Output Correlation:</strong> There is no obvious linear relationship between k and Q = (x, y). Without walking through the point addition steps, predicting Q directly from k by eye is practically impossible.</li>
+  </ul>
+
+  <h2>3. Discussion: OWFs vs. Cryptographic Hash Functions</h2>
+  <p>
+    While both elliptic curve multiplication and hash functions are one-way processes, they serve different mathematical roles:
+  </p>
+  <p>
+    <strong>Elliptic Curve Scalar Multiplication (One-Way Function):</strong><br>
+    The key feature here is that scalar multiplication k ➔ kG is easy to do, but finding k given Q and G is the ECDLP problem, which is computationally hard. Crucially, EC multiplication preserves a mathematical group structure: (a + b)G = aG + bG. This homomorphic property is what enables key pairing, digital signatures, and public key cryptography in general.
+  </p>
+  <p>
+    <strong>Cryptographic Hash Functions (e.g. Keccak-256):</strong><br>
+    Unlike curve multiplication, hash functions are designed to deliberately break and destroy all algebraic relationships. They require collision resistance (it should be hard to find two inputs with the same output hash) and must map arbitrary-length data into a fixed-size digest. EC scalar multiplication doesn't focus on collision resistance in this way because the key-to-point mapping is a one-to-one group structure.
+  </p>
+
+  <script>
+    const p = 17;
+    const G = { x: 1, y: 5 };
+
+    function modInv(a, m) {
+      a = ((a % m) + m) % m;
+      for (let x = 1; x < m; x++) {
+        if ((a * x) % m === 1) return x;
+      }
+      return 1;
+    }
+
+    function addPoints(P, Q) {
+      if (!P) return Q;
+      if (!Q) return P;
+      if (P.x === Q.x && (P.y !== Q.y || P.y === 0)) return null;
+
+      let slope;
+      if (P.x === Q.x && P.y === Q.y) {
+        let num = (3 * P.x * P.x) % p;
+        let den = modInv(2 * P.y, p);
+        slope = (num * den) % p;
+      } else {
+        let num = (Q.y - P.y + p) % p;
+        let den = modInv(Q.x - P.x + p, p);
+        slope = (num * den) % p;
+      }
+
+      let x3 = (slope * slope - P.x - Q.x) % p;
+      x3 = (x3 + p) % p;
+
+      let y3 = (slope * (P.x - x3) - P.y) % p;
+      y3 = (y3 + p) % p;
+
+      return { x: x3, y: y3 };
+    }
+
+    function runCalculation() {
+      const k = parseInt(document.getElementById('kVal').value);
+      const out = document.getElementById('output');
+      
+      let pt = null;
+      let html = '<table><tr><th>Step</th><th>Operation</th><th>Result Point (x, y)</th></tr>';
+
+      for (let i = 1; i <= k; i++) {
+        pt = addPoints(pt, G);
+        const str = pt ? `(${pt.x}, ${pt.y})` : 'Point at Infinity';
+        html += `<tr><td>${i}</td><td>${i === 1 ? 'G' : (i-1) + 'G + G'}</td><td>${str}</td></tr>`;
+      }
+
+      html += '</table>';
+      const finalStr = pt ? `(${pt.x}, ${pt.y})` : 'Point at Infinity';
+      html += `<div class="result">Public Key Q (${k}G) = ${finalStr}</div>`;
+
+      out.innerHTML = html;
+    }
+
+    runCalculation();
+  </script>
+</body>
+</html>
