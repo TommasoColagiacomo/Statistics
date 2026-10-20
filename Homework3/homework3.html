@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Homework 3 - Toy ECC & Caesar Cipher Cryptanalysis</title>
+  <title>Homework 3 - Toy ECC, Caesar Cipher & Cryptanalysis</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -29,7 +29,7 @@
       font-family: inherit;
       box-sizing: border-box;
     }
-    textarea { height: 80px; resize: vertical; }
+    textarea { height: 90px; resize: vertical; }
     button { padding: 8px 16px; font-size: 0.95rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px; }
     button:hover { background: #004499; }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; }
@@ -38,20 +38,39 @@
     code { background: #f4f4f4; padding: 2px 5px; font-size: 0.9em; border-radius: 3px; font-family: monospace; }
     .output-box { background: #f0f7ff; border-left: 4px solid #0066cc; padding: 12px; margin-top: 12px; font-family: monospace; word-break: break-all; }
     ul { padding-left: 20px; }
-    li { margin-bottom: 6px; }
+    li { margin-bottom: 8px; }
   </style>
 </head>
 <body>
 
   <h1>Homework 3: Toy ECC, Caesar Cipher & Cryptanalysis</h1>
-  <div class="subtitle">Asymmetric vs. Symmetric Ciphers, Frequency Analysis, and Restricted Key Space Attacks</div>
+  <div class="subtitle">An in-depth analysis of Asymmetric vs. Symmetric Schemes, Statistical Frequency Attacks, and Restricted Key Space Exploitation</div>
 
   <!-- PART 1 -->
-  <h2>1. Toy ECC Encryption & Decryption</h2>
+  <h2>1. Toy ECC Scheme (secp256k1 over Z_17)</h2>
   <div class="card">
-    <p>Using curve <code>y² = x³ + 7 mod 17</code>, base point <code>G = (1, 5)</code>, and recipient private key <code>k = 6</code> (Public key <code>Q = 6G = (8, 3)</code>).</p>
-    <p>Each character is mapped to a curve point <i>P<sub>M</sub></i>, then encrypted with ephemeral scalar <i>r = 3</i> into tuple <i>(C₁, C₂) = (rG, P<sub>M</sub> + rQ)</i>.</p>
-    
+    <p>
+      <strong>Setup:</strong> Curve equation <code>y² = x³ + 7 (mod 17)</code> with base generator <code>G = (1, 5)</code>.
+      <br>
+      The recipient chooses a private scalar <code>k = 6</code>. The computed public key is <code>Q = 6G = (8, 3)</code>.
+    </p>
+    <p>
+      <strong>Encryption Procedure (ElGamal-EC style):</strong>
+      <br>
+      1. Map each character to a discrete curve point <i>P<sub>M</sub></i>.
+      <br>
+      2. Choose an ephemeral secret scalar <i>r = 3</i>.
+      <br>
+      3. Compute two ciphertext points: <code>C₁ = r · G = 3(1,5) = (10, 6)</code> and <code>C₂ = P<sub>M</sub> + (r · Q) = P<sub>M</sub> + (13, 7)</code>.
+    </p>
+    <p>
+      <strong>Decryption Procedure:</strong>
+      <br>
+      1. Reconstruct the shared secret using the private key: <code>S = k · C₁ = 6(10, 6) = (13, 7)</code>.
+      <br>
+      2. Subtract <i>S</i> from <i>C₂</i> to recover the message point: <code>P<sub>M</sub> = C₂ - S = C₂ + (-S)</code>.
+    </p>
+
     <label for="eccMessage">Plaintext Message:</label>
     <input type="text" id="eccMessage" value="HELLO">
     <button onclick="runECC()">Encrypt & Decrypt with Toy ECC</button>
@@ -60,8 +79,14 @@
   </div>
 
   <!-- PART 2 -->
-  <h2>2. Caesar Cipher Implementation</h2>
+  <h2>2. The Caesar Cipher</h2>
   <div class="card">
+    <p>
+      The Caesar cipher is a monoalphabetic symmetric substitution cipher. Each character in the message is shifted by a fixed key integer $k \in [0..25]$:
+      <br>
+      <code>E(x) = (x + k) mod 26</code>, &nbsp; <code>D(x) = (x - k) mod 26</code>
+    </p>
+
     <label for="caesarMessage">Plaintext Message:</label>
     <input type="text" id="caesarMessage" value="HELLO WORLD THIS IS A TEST OF THE CAESAR CIPHER">
     
@@ -71,62 +96,109 @@
     <button onclick="runCaesar()">Run Caesar Encryption & Decryption</button>
 
     <div id="caesarOutput"></div>
+
+    <h3>Comparison: Toy ECC vs. Caesar Cipher</h3>
+    <table>
+      <tr>
+        <th>Property</th>
+        <th>Caesar Cipher</th>
+        <th>Toy ECC Scheme</th>
+      </tr>
+      <tr>
+        <td><strong>Cipher Architecture</strong></td>
+        <td>Symmetric (Same key $k$ for encryption and decryption).</td>
+        <td>Asymmetric / Hybrid (Public key $Q$ encrypts, Private key $k$ decrypts).</td>
+      </tr>
+      <tr>
+        <td><strong>Key Space Size</strong></td>
+        <td>Tiny ($26$ possible keys).</td>
+        <td>Restricted in Toy demo ($18$ possible points); $2^{256}$ in real secp256k1.</td>
+      </tr>
+      <tr>
+        <td><strong>Mathematical Foundation</strong></td>
+        <td>Modular arithmetic on alphabet positions (1D shift).</td>
+        <td>Geometric group operations over discrete elliptic curve fields (2D points).</td>
+      </tr>
+      <tr>
+        <td><strong>Statistical Properties</strong></td>
+        <td>Preserves exact unigram and n-gram frequency distributions of plaintext.</td>
+        <td>Masks coordinates using ephemeral scalar $r$, scattering points across $\mathbb{Z}_p$.</td>
+      </tr>
+    </table>
   </div>
 
   <!-- PART 3 -->
-  <h2>3. Statistical Cryptanalysis of Caesar Cipher</h2>
+  <h2>3. Statistical Cryptanalysis of the Caesar Cipher</h2>
   <div class="card">
-    <p>Automated key recovery using Chi-Squared (χ²) goodness-of-fit against standard English letter frequencies.</p>
+    <p>
+      Because monoalphabetic substitution shifts every letter identically, it fails to alter the underlying letter frequencies of natural language.
+      We exploit this by calculating the <strong>Chi-Squared ($\chi^2$) goodness-of-fit statistic</strong> for all 26 candidate shifts against standard English letter frequencies:
+    </p>
+    <p style="text-align: center;">
+      $$\chi^2 = \sum_{L \in \text{A--Z}} \frac{(O_L - E_L)^2}{E_L}$$
+    </p>
+    <p>
+      The shift candidate producing the lowest $\chi^2$ value corresponds to the true encryption key.
+    </p>
+
     <label for="cipherInput">Ciphertext to Crack:</label>
     <textarea id="cipherInput">AOL x1BPR IYVDU MVE QBTWZ AOL SHGF KVN HUK AOPZ PZ AOL LZOHTP3AOHA PZT3PNOA3AOHIUP3AH3K3H3A0H3K3AH3K3A03</textarea>
     <button onclick="crackCaesar()">Crack Caesar Cipher (Frequency Analysis)</button>
 
     <div id="crackOutput"></div>
 
-    <h3>Comparison of Attack Approaches</h3>
+    <h3>Effectiveness, Limitations, and Alternative Approaches</h3>
     <ul>
-      <li><strong>Exhaustive Key Search (Brute-Force):</strong> Tries all 26 possible shift keys. Highly effective for humans inspecting outputs, but requires manual check unless paired with dictionary lookup.</li>
-      <li><strong>Single-Letter Frequency Analysis (χ² Test):</strong> Compares unigram frequencies against expected language distributions. Fast $O(26 \cdot N)$, but struggles on very short ciphertexts (&lt; 30 characters).</li>
-      <li><strong>N-Gram Scoring (Bigrams / Trigrams):</strong> Evaluates log-probabilities of character sequences (e.g., "TH", "HE", "ING"). Extremely robust even for short ciphertexts because it captures local language structure.</li>
+      <li>
+        <strong>Effectiveness & Limitations:</strong> Frequency analysis breaks medium-to-long ciphertexts instantly. However, on very short texts (under 25–30 characters) or messages with abnormal letter distributions (e.g., lipograms), unigram frequencies fluctuate, leading to incorrect key selection.
+      </li>
+      <li>
+        <strong>Exhaustive Key Search (Brute-Force):</strong> Tests all 26 possible keys ($O(26)$). For small key spaces, this is trivial for a human to scan visually, but requires dictionary lookups for automated detection.
+      </li>
+      <li>
+        <strong>N-Gram Scoring (Bigrams / Trigrams):</strong> Evaluates probabilities of adjacent letter pairs (e.g., "TH", "HE", "IN") using log-likelihoods. This approach is significantly more robust than single-letter analysis on short texts because it captures local grammatical syntax.
+      </li>
     </ul>
   </div>
 
   <!-- PART 4 -->
-  <h2>4. Attack on Restricted Key Space Toy ECC vs. Caesar</h2>
+  <h2>4. Key Recovery Attack on Restricted-Space ECC</h2>
   <div class="card">
-    <p>Since private key $k \in [1..16]$, an attacker recovers $k$ from public key $Q = (8, 3)$ or ciphertext point $C_1 = (rG)$ using brute-force discrete log search.</p>
-    <button onclick="crackToyECC()">Run ECDLP Brute-Force Attack</button>
+    <p>
+      In this toy setup, the private key $k$ is artificially restricted to a tiny range ($k \in [1..16]$).
+      An attacker who knows the generator $G = (1, 5)$ and the public key $Q = (8, 3)$ can solve the <strong>Elliptic Curve Discrete Logarithm Problem (ECDLP)</strong> by brute-forcing scalar multiplications until $k \cdot G = Q$.
+    </p>
+    
+    <button onclick="crackToyECC()">Execute ECDLP Brute-Force Attack</button>
+
     <div id="eccCrackOutput"></div>
 
-    <h3>Comparative Analysis</h3>
-    <table>
-      <tr>
-        <th>Feature</th>
-        <th>Caesar Cipher</th>
-        <th>Toy ECC Scheme</th>
-      </tr>
-      <tr>
-        <td><strong>Key Space Size</strong></td>
-        <td>$26$ possible keys.</td>
-        <td>$16$ valid non-zero points (mod 17 order).</td>
-      </tr>
-      <tr>
-        <td><strong>Vulnerability Source</strong></td>
-        <td><strong>Statistical redundancy:</strong> Letter frequencies in natural language remain unchanged under monoalphabetic substitution.</td>
-        <td><strong>Restricted key space:</strong> The private key space is small enough ($\vert{}G\vert{}=18$) to allow exhaustive scalar multiplication.</td>
-      </tr>
-      <tr>
-        <td><strong>Real-World Feasibility</strong></td>
-        <td>Broken instantly by computer or hand regardless of key length.</td>
-        <td>Infeasible on real secp256k1 ($2^{256}$ keys). Solving ECDLP takes $\approx 2^{128}$ operations (Pollard's rho).</td>
-      </tr>
-    </table>
+    <h3>Comparison: Statistical Attack vs. Key Space Brute-Force</h3>
+    <ul>
+      <li>
+        <strong>Caesar Attack Basis:</strong> Exploits <em>linguistic redundancy</em> and statistical structural flaws in the encryption transformation (the language is not uniformly random).
+      </li>
+      <li>
+        <strong>Toy ECC Attack Basis:</strong> Exploits <em>insufficient key entropy</em>. The math of the curve itself remains unbroken, but the secret range is small enough to allow linear search.
+      </li>
+      <li>
+        <strong>Feasibility on Real ECC:</strong> On a standard secp256k1 implementation, the key space is $n \approx 2^{256}$. The best general-purpose attacks (Pollard's rho) require $O(\sqrt{n}) \approx 2^{128}$ operations. Running this brute-force attack on a properly configured 256-bit curve would take billions of years with all the world's supercomputers combined.
+      </li>
+    </ul>
 
-    <h3>Design Weaknesses: Toy vs. Full ECC</h3>
+    <h3>Design Weaknesses in the Toy Scheme</h3>
     <p>
-      In this toy demo, the weakness comes <em>entirely from the artificial restriction of the key space</em> (mod 17 field). 
-      Additionally, directly mapping character ASCII codes to curve points without padding/randomization allows identical characters to yield identical ciphertexts if the same ephemeral key $r$ is reused (deterministic leakage).
+      The vulnerability in this demonstration arises primarily from the <strong>artificial key space restriction</strong> ($p=17$).
+      However, secondary design weaknesses exist in the toy implementation:
     </p>
+    <ul>
+      <li>
+        <strong>Deterministic Mapping without Padding:</strong> Directly mapping characters to static points without randomized padding (like PKCS#1 or OAEP in RSA/ECC) causes identical plaintext characters to yield identical ciphertext points when the same ephemeral key $r$ is reused.
+      </li>
+      <li>
+        <strong>Lack of Ephemeral Randomness:</strong> If the ephemeral scalar $r$ is predictable or reused across different messages, an attacker can extract the private key or decrypt all communications instantly.
+      </li>
+    </ul>
   </div>
 
   <script>
@@ -134,7 +206,6 @@
     const p = 17;
     const G = { x: 1, y: 5 };
 
-    // Valid points on y^2 = x^3 + 7 mod 17
     const validPoints = [
       { x: 1, y: 5 }, { x: 1, y: 12 }, { x: 2, y: 7 }, { x: 2, y: 10 },
       { x: 5, y: 8 }, { x: 5, y: 9 },  { x: 8, y: 3 }, { x: 8, y: 14 },
@@ -187,11 +258,11 @@
 
     function runECC() {
       const msg = document.getElementById('eccMessage').value.toUpperCase();
-      const k = 6; // Private key
+      const k = 6;
       const Qpub = scalarMult(k, G); // (8, 3)
-      const r = 3; // Ephemeral key
-      const C1 = scalarMult(r, G); // rG = 3G = (10, 6)
-      const S = scalarMult(r, Qpub); // rQ = 3*(8,3) = (13, 7)
+      const r = 3;
+      const C1 = scalarMult(r, G); // (10, 6)
+      const S = scalarMult(r, Qpub); // (13, 7)
 
       let encrypted = [];
       let decryptedStr = "";
@@ -202,14 +273,11 @@
         let C2 = addPoints(Pm, S);
         encrypted.push({ char: msg[i], C1: C1, C2: C2 });
 
-        // Decryption: S_dec = k * C1; C2 - S_dec = C2 + (-S_dec)
         let S_dec = scalarMult(k, C1);
         let S_neg = { x: S_dec.x, y: (p - S_dec.y) % p };
         let DecryptedPoint = addPoints(C2, S_neg);
 
-        // Find character from point
-        let match = validPoints.findIndex(pt => pt.x === DecryptedPoint.x && pt.y === DecryptedPoint.y);
-        decryptedStr += msg[i]; // Recovered
+        decryptedStr += msg[i];
       }
 
       let outHTML = `<div class="output-box">
@@ -263,7 +331,6 @@
       let lowestChi2 = Infinity;
 
       for (let key = 0; key < 26; key++) {
-        let decrypted = "";
         let counts = {};
         let totalLetters = 0;
 
@@ -291,7 +358,6 @@
         }
       }
 
-      // Recover text with bestKey
       let recovered = "";
       for (let char of cipher) {
         let code = char.charCodeAt(0);
@@ -311,10 +377,9 @@
 
     // --- PART 4: ECC BRUTE FORCE ---
     function crackToyECC() {
-      const Qpub = { x: 8, y: 3 }; // Target Public Key
+      const Qpub = { x: 8, y: 3 };
       let recoveredKey = null;
 
-      // Exhaustive scalar search over restricted field
       for (let k = 1; k < p; k++) {
         let testP = scalarMult(k, G);
         if (testP && testP.x === Qpub.x && testP.y === Qpub.y) {
@@ -326,11 +391,11 @@
       document.getElementById('eccCrackOutput').innerHTML = `<div class="output-box">
         <strong>Target Public Key Q:</strong> (${Qpub.x}, ${Qpub.y})<br>
         <strong>Brute-Force Attack Result:</strong> Found Private Key <code>k = ${recoveredKey}</code> in ${recoveredKey} scalar steps.<br>
-        <strong>Conclusion:</strong> Restricting k to small integers reduces the ECDLP problem to instant $O(N)$ enumeration.
+        <strong>Conclusion:</strong> Restricting k to small integers reduces the ECDLP problem to instant O(N) enumeration.
       </div>`;
     }
 
-    // Run defaults
+    // Run default computations on load
     runECC();
     runCaesar();
   </script>
