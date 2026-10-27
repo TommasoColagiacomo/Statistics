@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework 4 - Penetration Process Simulation & Limit Theorems</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 820px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      line-height: 1.6;
+      background-color: #fff;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 5px; }
+    h2 { font-size: 1.3rem; margin-top: 35px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    h3 { font-size: 1.05rem; margin-top: 20px; color: #111; }
+    .subtitle { color: #666; margin-bottom: 30px; font-size: 1rem; }
+    .card { background: #fcfcfc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px; margin-bottom: 20px; }
+    label { font-weight: 600; display: inline-block; margin-bottom: 5px; }
+    input[type="number"] { width: 100px; padding: 6px; font-size: 0.95rem; border: 1px solid #ccc; border-radius: 4px; margin-right: 15px; }
+    select { padding: 6px; font-size: 0.95rem; border: 1px solid #ccc; border-radius: 4px; margin-right: 15px; }
+    button { padding: 8px 16px; font-size: 0.95rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px; }
+    button:hover { background: #004499; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background-color: #f7f7f7; }
+    code { background: #f4f4f4; padding: 2px 5px; font-size: 0.9em; border-radius: 3px; font-family: monospace; }
+    .output-box { background: #f0f7ff; border-left: 4px solid #0066cc; padding: 12px; margin-top: 15px; font-family: monospace; word-break: break-all; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>Homework 4: Stochastic Modeling of Security Penetration</h1>
+  <div class="subtitle">Simulating Bernoulli & Rademacher Random Walks, LLN Convergence, and CLT Behavior</div>
+
+  <!-- PART 1 -->
+  <h2>1. Simulation Configuration</h2>
+  <div class="card">
+    <p>
+      Model a penetration process over <i>n</i> systems (or time steps) across <i>m</i> independent attackers (trajectories).
+      Each step produces an i.i.d. increment <i>X<sub>i</sub></i>:
+    </p>
+    <ul>
+      <li><strong>Bernoulli Model:</strong> <code>X<sub>i</sub> ∈ {0, 1}</code> with <code>P(X<sub>i</sub> = 1) = p</code>.</li>
+      <li><strong>Rademacher Model:</strong> <code>X<sub>i</sub> ∈ {-1, +1}</code> with <code>P(X<sub>i</sub> = +1) = P(X<sub>i</sub> = -1) = 0.5</code>.</li>
+    </ul>
+
+    <label for="modelSelect">Increment Model:</label>
+    <select id="modelSelect">
+      <option value="bernoulli">Bernoulli (p = 0.5)</option>
+      <option value="rademacher" selected>Rademacher (+1 / -1)</option>
+    </select>
+
+    <label for="nSystems">Systems / Steps (n):</label>
+    <input type="number" id="nSystems" value="1000" min="10" max="10000">
+
+    <label for="mAttackers">Attackers / Trajectories (m):</label>
+    <input type="number" id="mAttackers" value="500" min="10" max="2000">
+
+    <br><br>
+    <button onclick="runSimulation()">Run Stochastic Simulation</button>
+
+    <div id="simResults"></div>
+  </div>
+
+  <!-- PART 2 -->
+  <h2>2. Theoretical Framework & Mathematical Normalizations</h2>
+  <div class="card">
+    <p>
+      For a sequence of independent and identically distributed random variables <i>X₁, X₂, ..., Xₙ</i> with mean <i>E[Xᵢ] = μ</i> and variance <i>Var(Xᵢ) = σ²</i>, we analyze three different scalings of the cumulative process:
+    </p>
+
+    <h3>1. Total Score: Sₙ = ∑ Xᵢ</h3>
+    <p>
+      <strong>Properties:</strong> <code>E[Sₙ] = n · μ</code> &nbsp;|&nbsp; <code>Var(Sₙ) = n · σ²</code>
+      <br>
+      As <i>n → ∞</i>, the variance grows linearly with <i>n</i>. The dispersion of total penetration scores among attackers widens without bound, making raw total scores unsuitable for direct comparisons across large systems.
+    </p>
+
+    <h3>2. Average Score: Sₙ / n = (1/n) ∑ Xᵢ</h3>
+    <p>
+      <strong>Properties:</strong> <code>E[Sₙ/n] = μ</code> &nbsp;|&nbsp; <code>Var(Sₙ/n) = σ² / n</code>
+      <br>
+      As <i>n → ∞</i>, the variance shrinks to 0. By the <strong>Weak Law of Large Numbers (LLN)</strong>, the sample average converges in probability to the expected value:
+      <br>
+      <code>P(|Sₙ/n - μ| &gt; ε) → 0 &nbsp; as &nbsp; n → ∞</code>
+    </p>
+
+    <h3>3. Normalized Total Score: Sₙ / √n = (1/√n) ∑ Xᵢ</h3>
+    <p>
+      <strong>Properties:</strong> <code>E[Sₙ/√n] = √n · μ</code> &nbsp;|&nbsp; <code>Var(Sₙ/√n) = σ²</code>
+      <br>
+      By scaling by <code>√n</code>, the variance remains constant (equal to <i>σ²</i>) regardless of how large <i>n</i> grows.
+      In the zero-mean Rademacher case (<i>μ = 0, σ² = 1</i>), the <strong>Central Limit Theorem (CLT)</strong> guarantees that <i>Sₙ/√n</i> converges in distribution to a Standard Normal distribution:
+      <br>
+      <code>Sₙ / √n ➔ N(0, 1) &nbsp; as &nbsp; n → ∞</code>
+    </p>
+  </div>
+
+  <!-- PART 3 -->
+  <h2>3. Scaling Behavior Comparison</h2>
+  <table>
+    <tr>
+      <th>Quantity</th>
+      <th>Formula</th>
+      <th>Expected Value (Rademacher)</th>
+      <th>Variance (Rademacher)</th>
+      <th>Asymptotic Behavior (n ➔ ∞)</th>
+    </tr>
+    <tr>
+      <td><strong>Total Score</strong></td>
+      <td><code>Sₙ</code></td>
+      <td>0</td>
+      <td><code>n</code></td>
+      <td>Diverges (Variance grows linearly)</td>
+    </tr>
+    <tr>
+      <td><strong>Average Score</strong></td>
+      <td><code>Sₙ / n</code></td>
+      <td>0</td>
+      <td><code>1 / n</code></td>
+      <td>Converges to μ = 0 (LLN, Variance vanishes)</td>
+    </tr>
+    <tr>
+      <td><strong>Normalized Score</strong></td>
+      <td><code>Sₙ / √n</code></td>
+      <td>0</td>
+      <td><code>1</code></td>
+      <td>Stabilizes to N(0, 1) Gaussian (CLT)</td>
+    </tr>
+  </table>
+
+  <!-- PART 4 -->
+  <h2>4. Cybersecurity Interpretation</h2>
+  <div class="card">
+    <p>
+      Translating these mathematical limit theorems into the security domain provides key insights into system resilience and attacker dynamics:
+    </p>
+    <ul>
+      <li>
+        <strong>System Size (n):</strong> As the number of systems or security layers increases, the cumulative variance grows. However, the average vulnerability per system (<i>Sₙ/n</i>) stabilizes around its true mean <i>μ</i> due to the Law of Large Numbers. In a zero-mean symmetric scenario (Rademacher), defense and attack capabilities balance out on average.
+      </li>
+      <li>
+        <strong>Number of Attackers (m):</strong> Increasing <i>m</i> allows us to observe the full probability distribution across independent attack campaigns. While individual trajectories deviate randomly, the collective ensemble of <i>m</i> attackers accurately reflects the theoretical Gaussian limit (CLT) predicted by the <i>Sₙ/√n</i> normalization.
+      </li>
+      <li>
+        <strong>Practical Defense Implications:</strong> Because raw scores <i>Sₙ</i> diverge in spread as <i>n</i> grows, defenders cannot rely on single-system outcomes. Normalizing by <i>√n</i> provides a stable metric to evaluate system security posture independent of deployment scale.
+      </li>
+    </ul>
+  </div>
+
+  <script>
+    function runSimulation() {
+      const model = document.getElementById('modelSelect').value;
+      const n = parseInt(document.getElementById('nSystems').value);
+      const m = parseInt(document.getElementById('mAttackers').value);
+
+      let finalTotal = [];
+      let finalAvg = [];
+      let finalNorm = [];
+
+      for (let j = 0; j < m; j++) {
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+          let step = 0;
+          if (model === 'bernoulli') {
+            step = Math.random() < 0.5 ? 1 : 0;
+          } else {
+            step = Math.random() < 0.5 ? 1 : -1;
+          }
+          sum += step;
+        }
+        finalTotal.push(sum);
+        finalAvg.push(sum / n);
+        finalNorm.push(sum / Math.sqrt(n));
+      }
+
+      function getStats(arr) {
+        let mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+        let variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
+        return { mean: mean.toFixed(4), var: variance.toFixed(4) };
+      }
+
+      let totalStats = getStats(finalTotal);
+      let avgStats = getStats(finalAvg);
+      let normStats = getStats(finalNorm);
+
+      let expMean = (model === 'bernoulli') ? 0.5 : 0;
+      let expVarVal = (model === 'bernoulli') ? 0.25 : 1;
+
+      let html = `<div class="output-box">
+        <strong>Simulation Summary (${m} trajectories, n = ${n} steps):</strong><br><br>
+        <strong>1. Total Score (Sₙ):</strong><br>
+        - Empirical Mean: ${totalStats.mean} (Theoretical: ${(n * expMean).toFixed(2)})<br>
+        - Empirical Variance: ${totalStats.var} (Theoretical: ${(n * expVarVal).toFixed(2)})<br><br>
+
+        <strong>2. Average Score (Sₙ / n) — LLN:</strong><br>
+        - Empirical Mean: ${avgStats.mean} (Theoretical: ${expMean.toFixed(2)})<br>
+        - Empirical Variance: ${avgStats.var} (Theoretical: ${(expVarVal / n).toFixed(6)})<br><br>
+
+        <strong>3. Normalized Score (Sₙ / √n) — CLT:</strong><br>
+        - Empirical Mean: ${normStats.mean} (Theoretical: ${(Math.sqrt(n) * expMean).toFixed(2)})<br>
+        - Empirical Variance: ${normStats.var} (Theoretical: ${expVarVal.toFixed(2)})<br><br>
+
+        <em>Note how Var(Sₙ/n) ➔ 0 as n increases (Law of Large Numbers), whereas Var(Sₙ/√n) remains stable near ${expVarVal} (Central Limit Theorem).</em>
+      </div>`;
+
+      document.getElementById('simResults').innerHTML = html;
+    }
+
+    // Run on page load
+    runSimulation();
+  </script>
+</body>
+</html>
