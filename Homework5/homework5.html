@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework 5 - Welford's Algorithm & Sampling Distributions</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 820px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      line-height: 1.6;
+      background-color: #fff;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 5px; }
+    .main-title-divider { border-bottom: 3px solid #0066cc; margin-bottom: 30px; }
+    h2 { font-size: 1.4rem; margin-top: 40px; border-bottom: 1px solid #ddd; padding-bottom: 6px; color: #004499; }
+    h3 { font-size: 1.1rem; margin-top: 20px; color: #111; }
+    .subtitle { color: #666; margin-bottom: 25px; font-size: 1rem; }
+    .card { background: #fcfcfc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px; margin-bottom: 20px; }
+    label { font-weight: 600; display: inline-block; margin-bottom: 5px; }
+    input[type="number"], select {
+      padding: 6px;
+      font-size: 0.95rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-right: 15px;
+      margin-bottom: 10px;
+    }
+    button { padding: 8px 16px; font-size: 0.95rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px; }
+    button:hover { background: #004499; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background-color: #f7f7f7; }
+    code { background: #f4f4f4; padding: 2px 5px; font-size: 0.9em; border-radius: 3px; font-family: monospace; }
+    pre { background: #f4f4f4; padding: 12px; border-radius: 4px; overflow-x: auto; font-family: monospace; font-size: 0.9em; }
+    .output-box { background: #f0f7ff; border-left: 4px solid #0066cc; padding: 12px; margin-top: 15px; font-family: monospace; word-break: break-all; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>Homework 5: Online Algorithms & Sampling Distributions</h1>
+  <div class="subtitle">Welford's Recurrence Formulas for Online Mean/Variance and Inferential Statistics Analysis</div>
+  <div class="main-title-divider"></div>
+
+  <!-- EXERCISE 1 -->
+  <h2>Ex. 1 – Welford’s Recurrence Formulas</h2>
+
+  <div class="card">
+    <h3>1. Derivation of Mean Recurrence (Knuth's Formula)</h3>
+    <p>
+      Let $\bar{x}_k$ be the sample mean of $k$ observations $x_1, x_2, \dots, x_k$. By definition:
+      <br>
+      $$\bar{x}_k = \frac{1}{k} \sum_{i=1}^k x_i = \frac{1}{k} \left( \sum_{i=1}^{k-1} x_i + x_k \right) = \frac{(k-1)\bar{x}_{k-1} + x_k}{k}$$
+      Rewriting gives Knuth's online mean update:
+      <br>
+      $$\bar{x}_k = \bar{x}_{k-1} + \frac{x_k - \bar{x}_{k-1}}{k}$$
+    </p>
+
+    <h3>2. Derivation of Sum of Squares (M_k or SS_k) Recurrence</h3>
+    <p>
+      Let $M_k = \sum_{i=1}^k (x_i - \bar{x}_k)^2$ be the sum of squared differences from the mean.
+      Notice that:
+      <br>
+      $$x_i - \bar{x}_k = x_i - \bar{x}_{k-1} - (\bar{x}_k - \bar{x}_{k-1})$$
+      Summing over $i=1 \dots k$ and simplifying cross-terms yields Welford's key recurrence formula:
+      <br>
+      $$M_k = M_{k-1} + (x_k - \bar{x}_{k-1})(x_k - \bar{x}_k)$$
+      From $M_k$, the sample variance is simply $s_k^2 = \frac{M_k}{k - 1}$ (unbiased) or $\sigma_k^2 = \frac{M_k}{k}$ (biased).
+    </p>
+
+    <h3>3. Core Implementation (3 Lines of Pure Logic)</h3>
+    <p>The online algorithm avoids numerical catastrophic cancellation when calculating variance over streaming data:</p>
+    <pre><code>// Core Welford logic inside a streaming loop over value x_k at step k:
+let delta = x_k - mean;
+mean += delta / k;
+M += delta * (x_k - mean); // M_k = M_{k-1} + (x_k - mean_{k-1}) * (x_k - mean_k)</code></pre>
+  </div>
+
+
+  <!-- EXERCISE 2 -->
+  <h2>Ex. 2 – Sampling Mean and Variance</h2>
+
+  <div class="card">
+    <p>
+      Simulate $m$ hackers attempting to penetrate $n$ systems.
+      Each penetration score is drawn from a discrete uniform distribution over integers $0, 1, \dots, 10$.
+    </p>
+    <p>
+      <strong>Theoretical Distribution Parameters ($0 \dots 10$ Uniform):</strong>
+      <br>
+      $$\mu = \frac{0 + 10}{2} = 5.0, \quad \sigma^2 = \frac{(10 - 0 + 1)^2 - 1}{12} = \frac{120}{12} = 10.0$$
+    </p>
+
+    <label for="nSystems">Systems Attempted by Each Hacker (n):</label>
+    <input type="number" id="nSystems" value="100" min="5" max="10000">
+
+    <label for="mHackers">Number of Hackers (m):</label>
+    <input type="number" id="mHackers" value="1000" min="10" max="10000">
+
+    <br>
+    <button onclick="runSimulation()">Run Welford Simulation</button>
+
+    <div id="simResults"></div>
+  </div>
+
+  <div class="card">
+    <h3>Statistical Interpretation & Conclusions</h3>
+    <ul>
+      <li>
+        <strong>Unbiased Estimators (LLN Effect):</strong>
+        <br>
+        The average of the $m$ sampling means ($\bar{\bar{x}}$) converges to the theoretical mean $\mu = 5.0$. Similarly, the average of the unbiased sampling variances ($\bar{s}^2$, divided by $n-1$) converges precisely to the theoretical variance $\sigma^2 = 10.0$. This demonstrates empirically that the sample mean and sample variance are unbiased estimators of the population parameters.
+      </li>
+      <li>
+        <strong>Why this matters in Inferential Statistics:</strong>
+        <br>
+        In real-world security or experimental contexts, we rarely know the true population parameters $(\mu, \sigma^2)$. Welford's algorithm allows computing reliable, unbiased sample estimates online without storing past data points in memory.
+      </li>
+      <li>
+        <strong>Effect of Increasing $n$ (Systems Attempted):</strong>
+        <br>
+        As $n$ increases, the variance of the sample means across the $m$ hackers decreases proportionally to $\sigma^2 / n$ (Standard Error of the Mean). Similarly, the sampling variances become tightly clustered around $\sigma^2 = 10.0$. Larger sample sizes per trajectory yield far more precise estimates of the underlying population parameters.
+      </li>
+    </ul>
+  </div>
+
+  <script>
+    // Welford Class for clean online tracking
+    class WelfordAccumulator {
+      constructor() {
+        this.k = 0;
+        this.mean = 0;
+        this.M = 0;
+      }
+
+      update(x) {
+        this.k++;
+        let delta = x - this.mean;
+        this.mean += delta / this.k;
+        this.M += delta * (x - this.mean);
+      }
+
+      getSampleVariance() {
+        return this.k > 1 ? this.M / (this.k - 1) : 0;
+      }
+    }
+
+    function runSimulation() {
+      const n = parseInt(document.getElementById('nSystems').value);
+      const m = parseInt(document.getElementById('mHackers').value);
+
+      const theoreticalMean = 5.0;
+      const theoreticalVar = 10.0; // For Uniform integer discrete distribution 0..10
+
+      let sampleMeans = [];
+      let sampleVariances = [];
+
+      for (let h = 0; h < m; h++) {
+        let welford = new WelfordAccumulator();
+        for (let s = 0; s < n; s++) {
+          // Score between 0 and 10 drawn uniformly
+          let score = Math.floor(Math.random() * 11);
+          welford.update(score);
+        }
+        sampleMeans.push(welford.mean);
+        sampleVariances.push(welford.getSampleVariance());
+      }
+
+      // Compute averages across all m hackers
+      let avgSampleMean = sampleMeans.reduce((a, b) => a + b, 0) / m;
+      let avgSampleVar = sampleVariances.reduce((a, b) => a + b, 0) / m;
+
+      // Variability of sample means and variances across the m hackers
+      let varOfSampleMeans = sampleMeans.reduce((a, b) => a + Math.pow(b - avgSampleMean, 2), 0) / m;
+      let varOfSampleVars = sampleVariances.reduce((a, b) => a + Math.pow(b - avgSampleVar, 2), 0) / m;
+
+      let html = `<div class="output-box">
+        <strong>Simulation Results (${m} hackers, n = ${n} systems per hacker):</strong><br><br>
+
+        <strong>Theoretical Population Parameters:</strong><br>
+        - Theoretical Mean (μ): ${theoreticalMean.toFixed(4)}<br>
+        - Theoretical Variance (σ²): ${theoreticalVar.toFixed(4)}<br><br>
+
+        <strong>Averages Across ${m} Hackers:</strong><br>
+        - Average of Sampling Means: <strong>${avgSampleMean.toFixed(4)}</strong> (Diff from μ: ${(avgSampleMean - theoreticalMean).toFixed(4)})<br>
+        - Average of Sampling Variances (s²): <strong>${avgSampleVar.toFixed(4)}</strong> (Diff from σ²: ${(avgSampleVar - theoreticalVar).toFixed(4)})<br><br>
+
+        <strong>Variability Across Hackers (Effect of Sample Size n = ${n}):</strong><br>
+        - Variance of Sampling Means: ${varOfSampleMeans.toFixed(6)} (Theoretical Error σ²/n = ${(theoreticalVar / n).toFixed(6)})<br>
+        - Variance of Sampling Variances: ${varOfSampleVars.toFixed(6)}<br><br>
+
+        <em>Observe how as n grows, the variance of sampling means shrinks towards zero (σ²/n), while the average of sample variances remains unbiased near 10.0.</em>
+      </div>`;
+
+      document.getElementById('simResults').innerHTML = html;
+    }
+
+    // Run simulation on initial page load
+    runSimulation();
+  </script>
+
+</body>
+</html>
