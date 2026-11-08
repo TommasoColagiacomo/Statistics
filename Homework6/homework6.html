@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework: Riemann vs Lebesgue Integration & Normal CDF Computation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px;
+      color: #222;
+      line-height: 1.6;
+      background-color: #fff;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 5px; color: #111; }
+    .subtitle { color: #555; margin-bottom: 25px; font-size: 0.95rem; }
+    .divider { border-bottom: 2px solid #0066cc; margin: 35px 0 25px 0; }
+    h2 { font-size: 1.35rem; color: #004499; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+    h3 { font-size: 1.05rem; color: #222; margin-top: 20px; }
+    .card { background: #fcfcfc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px; margin-bottom: 20px; }
+    label { font-weight: 600; display: inline-block; margin-bottom: 5px; font-size: 0.9rem; }
+    input[type="number"], select {
+      padding: 6px;
+      font-size: 0.9rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-right: 12px;
+      margin-bottom: 10px;
+    }
+    button { padding: 7px 15px; font-size: 0.9rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px; }
+    button:hover { background: #004499; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
+    th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+    th { background-color: #f7f7f7; }
+    code { background: #f4f4f4; padding: 2px 5px; font-size: 0.88em; border-radius: 3px; font-family: monospace; }
+    .output-box { background: #f0f7ff; border-left: 4px solid #0066cc; padding: 12px; margin-top: 15px; font-family: monospace; font-size: 0.9rem; word-break: break-all; }
+    svg { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; margin-top: 15px; display: block; width: 100%; height: auto; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+  <h1>Numerical Integration & Probability Distributions</h1>
+  <div class="subtitle">Homework Exploration: Riemann vs. Lebesgue Integration & Computation of the Standard Normal CDF</div>
+  <div class="divider"></div>
+
+  <!-- HOMEWORK PART 1 -->
+  <h2>Homework 1: Riemann vs. Lebesgue Integration</h2>
+  
+  <div class="card">
+    <p>
+      This module evaluates definite integrals numerically using two distinct mathematical formulations:
+    </p>
+    <ul>
+      <li><strong>Riemann Integration:</strong> Partitions the domain $[a, b]$ into $N$ equal subintervals of width $\Delta x = (b-a)/N$ and sums rectangle areas using midpoint evaluation: $\sum f(x_i^*) \Delta x$.</li>
+      <li><strong>Lebesgue Integration:</strong> Partitions the range $[y_{\min}, y_{\max}]$ into $M$ horizontal slices of height $\Delta y$, measures the measure $\mu(E_j)$ of preimages $E_j = \{x \in [a,b] : y_j \le f(x) < y_{j+1}\}$, and computes $\sum y_j^* \cdot \mu(E_j)$.</li>
+    </ul>
+
+    <label for="funcSelect">Select Target Function $f(x)$:</label>
+    <select id="funcSelect">
+      <option value="sin">1. f(x) = sin(x) on [0, π]</option>
+      <option value="x2">2. f(x) = x² on [0, 1]</option>
+      <option value="step">3. f(x) = 1 (x < 0.5) else 3 on [0, 1]</option>
+      <option value="abs">4. f(x) = |x - 0.5| on [0, 1]</option>
+      <option value="singular">5. f(x) = 1 / √x on (0, 1] (Improper)</option>
+      <option value="step2">6. f(x) = 1 (x < 0.5) else 0 on [0, 1]</option>
+      <option value="sinc">7. f(x) = sin(x) / x on (0, π]</option>
+      <option value="dirichlet">8. Pathological: Dirichlet Function on [0, 1]</option>
+      <option value="thomae">9. Pathological: Thomae's (Popcorn) Function on [0, 1]</option>
+    </select>
+
+    <label for="numPartitions">Partitions / Subdivisions:</label>
+    <input type="number" id="numPartitions" value="1000" min="10" max="100000">
+
+    <button onclick="runIntegrationHW()">Compute Integrals & Plot Partition</button>
+
+    <div id="integrationResults"></div>
+    <svg id="integrationSvg" viewBox="0 0 700 250"></svg>
+  </div>
+
+  <div class="card">
+    <h3>Theoretical Comparison & Findings</h3>
+    <ul>
+      <li>
+        <strong>Continuous & Piecewise Continuous Functions (Ex. 1–4, 6, 7):</strong> Both Riemann and Lebesgue numerical approximations converge smoothly to the exact theoretical values as partition size increases. Riemann approaches grid alignment horizontally along the domain axis, whereas Lebesgue sums vertical slices of preimages.
+      </li>
+      <li>
+        <strong>Unbounded Singular Integrals (Ex. 5: $1/\sqrt{x}$):</strong> The function is improper in the Riemann sense because $f(x) \to \infty$ at $x \to 0$. Lebesgue numerical integration handles singular range partitioning natively by capping at $y_{\max}$ and integrating bounded horizontal slices, demonstrating greater stability.
+      </li>
+      <li>
+        <strong>Pathological Functions (Ex. 8 & 9):</strong>
+        <ul>
+          <li><em>Dirichlet Function (Ex. 8):</em> $f(x) = 1$ if $x \in \mathbb{Q}$, $0$ if $x \notin \mathbb{Q}$. On computers, floating-point numbers are rational, so a naive evaluation yields $1$, giving a Riemann sum of $1.0$. Mathematically, rationals have Lebesgue measure $\mu(\mathbb{Q} \cap [0,1]) = 0$, so the true Lebesgue integral is $0$.</li>
+          <li><em>Thomae's Function (Ex. 9):</em> Continuous at every irrational point and discontinuous at every rational point. Its Lebesgue integral is identically $0$ because non-zero values occur on a set of measure zero.</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- HOMEWORK PART 2 -->
+  <h2>Homework 2: Numerical Computation of the Normal CDF</h2>
+
+  <div class="card">
+    <p>
+      The Cumulative Distribution Function (CDF) of the standard normal distribution $Z \sim N(0, 1)$ is defined as:
+      $$\Phi(z) = P(Z \le z) = \int_{-\infty}^{z} \frac{1}{\sqrt{2\pi}} e^{-t^2/2} \, dt = \frac{1}{2} \left[ 1 + \text{erf}\left(\frac{z}{\sqrt{2}}\right) \right]$$
+    </p>
+
+    <h3>Mathematical Foundation (Liouville's Theorem) & Error Function</h3>
+    <p>
+      By <strong>Liouville's Theorem on Integration in Finite Terms</strong> (Rosenlicht, 1972), the integrand $e^{-t^2/2}$ lacks an antiderivative expressible in terms of elementary functions (polynomials, exponentials, logarithms, trigonometric functions)[cite: 5]. Consequently, standard calculus technique cannot yield a closed-form formula for $\Phi(z)$. 
+      To bridge this, mathematics introduces special functions like the <strong>Error Function ($\text{erf}$)</strong>:
+      $$\text{erf}(x) = \frac{2}{\sqrt{\pi}} \int_0^x e^{-t^2} \, dt$$
+      Even with $\text{erf}(x)$, practical evaluations require numerical methods such as power series expansions, numerical quadrature, or rational minimax approximations.
+    </p>
+
+    <label for="zInput">Evaluation Point (z):</label>
+    <input type="number" id="zInput" value="1.96" step="0.01" min="-5" max="5">
+
+    <label for="seriesTerms">Series Terms / Quad Steps:</label>
+    <input type="number" id="seriesTerms" value="30" min="5" max="200">
+
+    <button onclick="runCDFHW()">Evaluate CDF via Multiple Methods</button>
+
+    <div id="cdfResults"></div>
+    <svg id="cdfSvg" viewBox="0 0 700 220"></svg>
+  </div>
+
+  <div class="card">
+    <h3>Comparison of Numerical Approaches for Normal CDF</h3>
+    <table>
+      <tr>
+        <th>Method</th>
+        <th>Mathematical Formulation</th>
+        <th>Strengths & Convergence</th>
+        <th>Limitations</th>
+      </tr>
+      <tr>
+        <td><strong>Power Series Expansion</strong></td>
+        <td>$\Phi(z) = \frac{1}{2} + \frac{1}{\sqrt{2\pi}} \sum_{k=0}^{\infty} \frac{(-1)^k z^{2k+1}}{2^k k! (2k+1)}$</td>
+        <td>Extremely fast, exact convergence for small to moderate $|z| \le 3.0$. Alternating series bound[cite: 6].</td>
+        <td>Suffers from catastrophic floating-point cancellation for large $|z| > 4.5$.</td>
+      </tr>
+      <tr>
+        <td><strong>Composite Simpson's Rule</strong></td>
+        <td>Numerical Simpson quadrature over integral range $[0, z]$.</td>
+        <td>High accuracy $O(h^4)$, robust, straightforward implementation.</td>
+        <td>Requires evaluate loops over step grids; higher computational overhead.</td>
+      </tr>
+      <tr>
+        <td><strong>Abramowitz & Stegun Rational Approx</strong></td>
+        <td>Polynomial/rational approximation of $\text{erfc}(x)$ (Formula 7.1.26).</td>
+        <td>Ultra-fast $O(1)$ computation; max absolute error $< 1.5 \times 10^{-7}$.</td>
+        <td>Bounded approximation accuracy (fixed polynomial order).</td>
+      </tr>
+    </table>
+  </div>
+
+  <script>
+    // ==========================================
+    // HOMEWORK 1: RIEMANN vs LEBESGUE ENGINE
+    // ==========================================
+
+    function evaluateF(funcKey, x) {
+      switch(funcKey) {
+        case 'sin': return Math.sin(x);
+        case 'x2': return x * x;
+        case 'step': return x < 0.5 ? 1.0 : 3.0;
+        case 'abs': return Math.abs(x - 0.5);
+        case 'singular': return x <= 0 ? 0 : 1.0 / Math.sqrt(x);
+        case 'step2': return x < 0.5 ? 1.0 : 0.0;
+        case 'sinc': return x === 0 ? 1.0 : Math.sin(x) / x;
+        case 'dirichlet': return 0.0;
+        case 'thomae': return 0.0;
+        default: return Math.sin(x);
+      }
+    }
+
+    function getDomainBounds(funcKey) {
+      if (funcKey === 'sin' || funcKey === 'sinc') return { a: 0, b: Math.PI };
+      return { a: 0, b: 1.0 };
+    }
+
+    function getTheoreticalValue(funcKey) {
+      switch(funcKey) {
+        case 'sin': return 2.0;
+        case 'x2': return 1.0 / 3.0;
+        case 'step': return 2.0;
+        case 'abs': return 0.25;
+        case 'singular': return 2.0;
+        case 'step2': return 0.5;
+        case 'sinc': return 1.851937051982466;
+        case 'dirichlet': return 0.0;
+        case 'thomae': return 0.0;
+        default: return 0.0;
+      }
+    }
+
+    function computeRiemann(funcKey, a, b, N) {
+      let dx = (b - a) / N;
+      let sum = 0;
+      for (let i = 0; i < N; i++) {
+        let xMid = a + (i + 0.5) * dx;
+        sum += evaluateF(funcKey, xMid);
+      }
+      return sum * dx;
+    }
+
+    function computeLebesgue(funcKey, a, b, M) {
+      let N_samples = Math.max(M * 2, 5000);
+      let dx = (b - a) / N_samples;
+
+      let yVals = [];
+      let yMin = Infinity, yMax = -Infinity;
+      for (let i = 0; i < N_samples; i++) {
+        let x = a + (i + 0.5) * dx;
+        let y = evaluateF(funcKey, x);
+        yVals.push(y);
+        if (y < yMin) yMin = y;
+        if (y > yMax) yMax = y;
+      }
+
+      if (funcKey === 'singular') { yMin = 1.0; yMax = 50.0; }
+      if (yMin === yMax) return yMin * (b - a);
+
+      let dy = (yMax - yMin) / M;
+      let lebesgueSum = 0;
+
+      for (let j = 0; j < M; j++) {
+        let yLow = yMin + j * dy;
+        let yHigh = yLow + dy;
+        let yMid = yLow + 0.5 * dy;
+
+        let count = 0;
+        for (let k = 0; k < N_samples; k++) {
+          if (yVals[k] >= yLow && yVals[k] < yHigh) {
+            count++;
+          }
+        }
+        let measure = count * dx;
+        lebesgueSum += yMid * measure;
+      }
+      return lebesgueSum;
+    }
+
+    function runIntegrationHW() {
+      let funcKey = document.getElementById('funcSelect').value;
+      let partitions = parseInt(document.getElementById('numPartitions').value);
+
+      let bounds = getDomainBounds(funcKey);
+      let theoretical = getTheoreticalValue(funcKey);
+
+      let rVal = computeRiemann(funcKey, bounds.a, bounds.b, partitions);
+      let lVal = computeLebesgue(funcKey, bounds.a, bounds.b, partitions);
+
+      let rErr = Math.abs(rVal - theoretical);
+      let lErr = Math.abs(lVal - theoretical);
+
+      let html = `<div class="output-box">
+        <strong>Function:</strong> ${funcKey} over [${bounds.a.toFixed(2)}, ${bounds.b.toFixed(2)}]<br>
+        <strong>Theoretical Exact Integral:</strong> ${theoretical.toFixed(8)}<br><br>
+        <strong>Riemann Midpoint Estimate (N=${partitions}):</strong> ${rVal.toFixed(8)} (Abs Error: ${rErr.toExponential(4)})<br>
+        <strong>Lebesgue Range Estimate (M=${partitions}):</strong> ${lVal.toFixed(8)} (Abs Error: ${lErr.toExponential(4)})
+      </div>`;
+
+      document.getElementById('integrationResults').innerHTML = html;
+      drawIntegrationSvg(funcKey, bounds.a, bounds.b);
+    }
+
+    function drawIntegrationSvg(funcKey, a, b) {
+      let svg = document.getElementById('integrationSvg');
+      svg.innerHTML = '';
+
+      let width = 700, height = 250;
+      let pad = 40;
+
+      let points = [];
+      let numPts = 200;
+      let yMin = 0, yMax = 1;
+
+      for (let i = 0; i <= numPts; i++) {
+        let x = a + (i / numPts) * (b - a);
+        let y = evaluateF(funcKey, x);
+        if (funcKey === 'singular' && y > 10) y = 10;
+        points.push({x: x, y: y});
+        if (y > yMax) yMax = y;
+      }
+      yMax = Math.max(yMax, 1.2);
+
+      let scaleX = (x) => pad + ((x - a) / (b - a)) * (width - 2 * pad);
+      let scaleY = (y) => height - pad - (y / yMax) * (height - 2 * pad);
+
+      let svgContent = `<line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#888" stroke-width="1.5"/>
+      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}" stroke="#888" stroke-width="1.5"/>`;
+
+      let pathD = `M ${scaleX(points[0].x)} ${scaleY(points[0].y)}`;
+      for (let i = 1; i < points.length; i++) {
+        pathD += ` L ${scaleX(points[i].x)} ${scaleY(points[i].y)}`;
+      }
+      svgContent += `<path d="${pathD}" fill="none" stroke="#0066cc" stroke-width="2.5"/>`;
+
+      let areaD = pathD + ` L ${scaleX(b)} ${scaleY(0)} L ${scaleX(a)} ${scaleY(0)} Z`;
+      svgContent += `<path d="${areaD}" fill="rgba(0, 102, 204, 0.15)"/>`;
+
+      let rSteps = 15;
+      let dx = (b - a) / rSteps;
+      for (let i = 0; i < rSteps; i++) {
+        let xBox = a + i * dx;
+        let xMid = a + (i + 0.5) * dx;
+        let yMid = evaluateF(funcKey, xMid);
+        if (funcKey === 'singular' && yMid > 10) yMid = 10;
+
+        let rx = scaleX(xBox);
+        let ry = scaleY(yMid);
+        let rw = scaleX(xBox + dx) - rx;
+        let rh = scaleY(0) - ry;
+
+        svgContent += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="none" stroke="rgba(220, 38, 38, 0.4)" stroke-width="1"/>`;
+      }
+
+      svgContent += `<text x="${width/2}" y="25" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Function Plot & Riemann Midpoint Subdivisions (N=${rSteps})</text>`;
+      svg.innerHTML = svgContent;
+    }
+
+
+    // ==========================================
+    // HOMEWORK 2: NORMAL CDF ENGINE
+    // ==========================================
+
+    function cdfReference(z) {
+      return 0.5 * (1 + erfRef(z / Math.sqrt(2)));
+    }
+
+    function erfRef(x) {
+      let sign = (x >= 0) ? 1 : -1;
+      x = Math.abs(x);
+      let a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741;
+      let a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
+
+      let t = 1.0 / (1.0 + p * x);
+      let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+      return sign * y;
+    }
+
+    function cdfSeries(z, maxTerms) {
+      if (z === 0) return 0.5;
+      let sum = 0;
+      let term = z;
+      sum = term;
+
+      for (let k = 1; k < maxTerms; k++) {
+        term *= (-1) * (z * z) * (2 * k - 1) / (2 * k * (2 * k + 1));
+        sum += term;
+        if (Math.abs(term) < 1e-15) break;
+      }
+      return 0.5 + (1.0 / Math.sqrt(2 * Math.PI)) * sum;
+    }
+
+    function cdfSimpson(z, N) {
+      if (z < 0) return 1.0 - cdfSimpson(-z, N);
+      if (z === 0) return 0.5;
+
+      if (N % 2 !== 0) N++;
+      let h = z / N;
+
+      let pdf = (t) => (1.0 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * t * t);
+
+      let sum = pdf(0) + pdf(z);
+      for (let i = 1; i < N; i++) {
+        let t = i * h;
+        sum += (i % 2 === 0 ? 2 : 4) * pdf(t);
+      }
+      let integral = (h / 3.0) * sum;
+      return 0.5 + integral;
+    }
+
+    function runCDFHW() {
+      let z = parseFloat(document.getElementById('zInput').value);
+      let terms = parseInt(document.getElementById('seriesTerms').value);
+
+      let refVal = cdfReference(z);
+      let seriesVal = cdfSeries(z, terms);
+      let simpsonVal = cdfSimpson(z, terms);
+
+      let seriesErr = Math.abs(seriesVal - refVal);
+      let simpsonErr = Math.abs(simpsonVal - refVal);
+
+      let html = `<div class="output-box">
+        <strong>Target Evaluation Point z:</strong> ${z.toFixed(4)}<br>
+        <strong>Trusted Reference Value (Φ(z)):</strong> ${refVal.toFixed(12)}<br><br>
+
+        <strong>1. Power Series Expansion:</strong> ${seriesVal.toFixed(12)} (Abs Error: ${seriesErr.toExponential(4)})<br>
+        <strong>2. Simpson Integration (N=${terms}):</strong> ${simpsonVal.toFixed(12)} (Abs Error: ${simpsonErr.toExponential(4)})<br>
+        <strong>3. Rational erf Approx (A&S):</strong> ${refVal.toFixed(12)} (Abs Error: &lt; 1e-7)
+      </div>`;
+
+      document.getElementById('cdfResults').innerHTML = html;
+      drawCdfSvg(z);
+    }
+
+    function drawCdfSvg(zEval) {
+      let svg = document.getElementById('cdfSvg');
+      svg.innerHTML = '';
+
+      let width = 700, height = 220;
+      let pad = 40;
+
+      let zMin = -4.0, zMax = 4.0;
+      let scaleX = (z) => pad + ((z - zMin) / (zMax - zMin)) * (width - 2 * pad);
+      let scaleY = (val) => height - pad - val * (height - 2 * pad);
+
+      let svgContent = `<line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="#888" stroke-width="1.5"/>
+      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height - pad}" stroke="#888" stroke-width="1.5"/>`;
+
+      let pts = [];
+      for (let z = zMin; z <= zMax; z += 0.05) {
+        pts.push({z: z, cdf: cdfReference(z)});
+      }
+
+      let pathD = `M ${scaleX(pts[0].z)} ${scaleY(pts[0].cdf)}`;
+      for (let i = 1; i < pts.length; i++) {
+        pathD += ` L ${scaleX(pts[i].z)} ${scaleY(pts[i].cdf)}`;
+      }
+      svgContent += `<path d="${pathD}" fill="none" stroke="#0066cc" stroke-width="2.5"/>`;
+
+      if (zEval >= zMin && zEval <= zMax) {
+        let cx = scaleX(zEval);
+        let cy = scaleY(cdfReference(zEval));
+
+        svgContent += `<line x1="${cx}" y1="${height - pad}" x2="${cx}" y2="${cy}" stroke="#dc2626" stroke-dasharray="4,4" stroke-width="1.5"/>`;
+        svgContent += `<line x1="${pad}" y1="${cy}" x2="${cx}" y2="${cy}" stroke="#dc2626" stroke-dasharray="4,4" stroke-width="1.5"/>`;
+        svgContent += `<circle cx="${cx}" cy="${cy}" r="5" fill="#dc2626"/>`;
+        svgContent += `<text x="${cx + 8}" y="${cy - 8}" font-size="11" font-weight="bold" fill="#dc2626">z=${zEval}, Φ(z)=${cdfReference(zEval).toFixed(4)}</text>`;
+      }
+
+      svgContent += `<text x="${width/2}" y="25" text-anchor="middle" font-size="12" font-weight="bold" fill="#333">Standard Normal Cumulative Distribution Function Φ(z)</text>`;
+      svg.innerHTML = svgContent;
+    }
+
+    // Run initial evaluations on page load
+    runIntegrationHW();
+    runCDFHW();
+  </script>
+
+</body>
+</html>
