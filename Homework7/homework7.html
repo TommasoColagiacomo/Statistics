@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homework - Statistical Independence & Chi-Square Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 850px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+      line-height: 1.6;
+      background-color: #fff;
+    }
+    h1 { font-size: 1.8rem; margin-bottom: 5px; color: #111; }
+    .subtitle { color: #555; margin-bottom: 25px; font-size: 0.95rem; }
+    .divider { border-bottom: 2px solid #0066cc; margin: 25px 0; }
+    h2 { font-size: 1.35rem; color: #004499; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+    h3 { font-size: 1.05rem; color: #222; margin-top: 20px; }
+    .card { background: #fcfcfc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 18px; margin-bottom: 20px; }
+    label { font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.95rem; }
+    textarea {
+      width: 100%;
+      height: 110px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+    }
+    button { padding: 8px 16px; font-size: 0.9rem; cursor: pointer; background: #0066cc; color: white; border: none; border-radius: 4px; margin-right: 8px; }
+    button:hover { background: #004499; }
+    button.secondary { background: #64748b; }
+    button.secondary:hover { background: #475569; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 20px; font-size: 0.9rem; }
+    th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: center; }
+    th { background-color: #f1f5f9; font-weight: 600; }
+    .marginal { background-color: #f8fafc; font-weight: bold; }
+    .output-box { background: #f0f7ff; border-left: 4px solid #0066cc; padding: 14px; margin-top: 15px; font-size: 0.95rem; }
+    code { background: #f4f4f4; padding: 2px 5px; font-size: 0.88em; border-radius: 3px; font-family: monospace; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>Statistical Independence & Contingency Analysis</h1>
+  <div class="subtitle">Bivariate Contingency Tables, Marginal/Conditional Frequencies, Chi-Square Test & Causality Discussion</div>
+  <div class="divider"></div>
+
+  <!-- INTERACTIVE DATASET & COMPUTATION -->
+  <h2>1. Bivariate Dataset & Interactive Analysis</h2>
+  <div class="card">
+    <p>Enter pairs of observations <code>(X, Y)</code> separated by commas (one pair per line). You can edit the dataset or load sample presets below:</p>
+    
+    <label for="datasetInput">Dataset Pairs (X, Y):</label>
+    <textarea id="datasetInput">Phishing, Clicked
+Phishing, Clicked
+Phishing, Ignored
+Phishing, Clicked
+Malware, Blocked
+Malware, Blocked
+Malware, Infected
+Malware, Blocked
+DDoS, Mitigated
+DDoS, Mitigated
+DDoS, Downtime
+DDoS, Mitigated
+Phishing, Clicked
+Phishing, Ignored
+Malware, Infected
+DDoS, Mitigated</textarea>
+
+    <div>
+      <button onclick="analyzeDataset()">Run Independence Analysis</button>
+      <button class="secondary" onclick="loadIndependentPreset()">Load Independent Dataset Preset</button>
+      <button class="secondary" onclick="loadDependentPreset()">Load Dependent Dataset Preset</button>
+    </div>
+
+    <div id="tablesOutput"></div>
+  </div>
+
+  <!-- THEORETICAL CONCEPTS & INTERPRETATION -->
+  <h2>2. Theoretical Concepts & Statistical Interpretation</h2>
+  <div class="card">
+    <h3>Mathematical Definition of Independence</h3>
+    <p>
+      In probability theory and statistics, two random variables $X$ and $Y$ are <strong>statistically independent</strong> if knowing the value of one provides no information about the distribution of the other. Formally, their joint probability equals the product of their marginal probabilities for all pairs $(x_i, y_j)$:
+      <br>
+      $$P(X = x_i \cap Y = y_j) = P(X = x_i) \cdot P(Y = y_j)$$
+    </p>
+    <p>
+      Equivalently, in terms of <strong>conditional probability</strong>, the distribution of $Y$ given $X = x_i$ is identical to the unconditional marginal distribution of $Y$:
+      <br>
+      $$P(Y = y_j \mid X = x_i) = \frac{P(X = x_i \cap Y = y_j)}{P(X = x_i)} = P(Y = y_j)$$
+    </p>
+
+    <h3>Expected Frequencies & Chi-Square Statistic ($\chi^2$)</h3>
+    <p>
+      In an empirical contingency table of size $N$, the expected frequency $E_{ij}$ under the null hypothesis of independence ($H_0$) is computed from the row marginal sum $R_i$ and column marginal sum $C_j$:
+      <br>
+      $$E_{ij} = \frac{R_i \cdot C_j}{N}$$
+    </p>
+    <p>
+      The Pearson <strong>Chi-Square statistic ($\chi^2$)</strong> measures the overall discrepancy between observed frequencies ($O_{ij}$) and expected frequencies ($E_{ij}$):
+      <br>
+      $$\chi^2 = \sum_{i=1}^{r} \sum_{j=1}^{c} \frac{(O_{ij} - E_{ij})^2}{E_{ij}}$$
+      with degrees of freedom $df = (r - 1)(c - 1)$. A small $p$-value ($p &lt; 0.05$) leads us to reject $H_0$, indicating statistically significant dependence between $X$ and $Y$.
+    </p>
+  </div>
+
+  <!-- DISCUSSION: ASSOCIATION VS CAUSALITY -->
+  <h2>3. Discussion: Statistical Association vs. Causality</h2>
+  <div class="card">
+    <p>
+      When the Chi-square test indicates statistical dependence, it confirms that $X$ and $Y$ are <strong>associated</strong> (they co-vary in a non-random way). However, statistical dependence alone does <strong>not</strong> prove a cause-and-effect relationship:
+    </p>
+    <ul>
+      <li>
+        <strong>Confounding Variables (Lurking Factors):</strong> A third unobserved variable $Z$ may simultaneously influence both $X$ and $Y$, creating a spurious correlation between them without any direct causal link.
+      </li>
+      <li>
+        <strong>Directionality Ambiguity:</strong> Contingency tables and $\chi^2$ tests are symmetric—swapping $X$ and $Y$ yields the exact same $\chi^2$ value. Statistical association cannot tell whether $X$ causes $Y$ or $Y$ causes $X$.
+      </li>
+      <li>
+        <strong>Establishing Causality:</strong> Moving from association to causality requires controlled randomized experiments, temporal precedence (cause precedes effect), or formal causal inference frameworks (such as do-calculus and Structural Causal Models) to isolate interventions from observational correlations.
+      </li>
+    </ul>
+  </div>
+
+  <script>
+    function loadDependentPreset() {
+      document.getElementById('datasetInput').value = 
+`Phishing, Clicked
+Phishing, Clicked
+Phishing, Clicked
+Phishing, Ignored
+Malware, Blocked
+Malware, Blocked
+Malware, Blocked
+Malware, Infected
+DDoS, Mitigated
+DDoS, Mitigated
+DDoS, Mitigated
+DDoS, Downtime`;
+      analyzeDataset();
+    }
+
+    function loadIndependentPreset() {
+      document.getElementById('datasetInput').value = 
+`Desktop, Success
+Desktop, Success
+Desktop, Fail
+Desktop, Fail
+Mobile, Success
+Mobile, Success
+Mobile, Fail
+Mobile, Fail
+Server, Success
+Server, Success
+Server, Fail
+Server, Fail`;
+      analyzeDataset();
+    }
+
+    // Upper incomplete gamma function approximation for Chi-Square p-value
+    function logGamma(z) {
+      const c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+                -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+      let x = z, y = z, tmp = x + 5.5;
+      tmp -= (x + 0.5) * Math.log(tmp);
+      let ser = 1.000000000190015;
+      for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+      return -tmp + Math.log(2.5066282746310005 * ser / x);
+    }
+
+    function chiSquarePValue(chi2, df) {
+      if (chi2 <= 0 || df <= 0) return 1.0;
+      const a = df / 2.0;
+      const x = chi2 / 2.0;
+      // Series / continued fraction for upper incomplete gamma Q(a, x)
+      if (x < a + 1.0) {
+        let ap = a, sum = 1.0 / a, del = sum;
+        for (let n = 1; n <= 100; n++) {
+          ap += 1.0;
+          del *= x / ap;
+          sum += del;
+          if (Math.abs(del) < Math.abs(sum) * 1e-12) break;
+        }
+        let p = sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
+        return Math.max(0, Math.min(1, 1.0 - p));
+      } else {
+        let b = x + 1.0 - a, c = 1e30, d = 1.0 / b, h = d;
+        for (let i = 1; i <= 100; i++) {
+          let an = -i * (i - a);
+          b += 2.0;
+          d = an * d + b;
+          if (Math.abs(d) < 1e-30) d = 1e-30;
+          c = b + an / c;
+          if (Math.abs(c) < 1e-30) c = 1e-30;
+          d = 1.0 / d;
+          let del = d * c;
+          h *= del;
+          if (Math.abs(del - 1.0) < 1e-12) break;
+        }
+        let q = Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
+        return Math.max(0, Math.min(1, q));
+      }
+    }
+
+    function analyzeDataset() {
+      const raw = document.getElementById('datasetInput').value.trim();
+      const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      
+      let pairs = [];
+      let xSet = new Set();
+      let ySet = new Set();
+
+      for (let line of lines) {
+        let parts = line.split(',').map(s => s.trim());
+        if (parts.length >= 2) {
+          pairs.push([parts[0], parts[1]]);
+          xSet.add(parts[0]);
+          ySet.add(parts[1]);
+        }
+      }
+
+      const N = pairs.length;
+      if (N === 0) return;
+
+      const xLabels = Array.from(xSet);
+      const yLabels = Array.from(ySet);
+
+      // Build observed counts matrix
+      let obs = {};
+      let rowTotals = {};
+      let colTotals = {};
+
+      xLabels.forEach(x => {
+        obs[x] = {};
+        rowTotals[x] = 0;
+        yLabels.forEach(y => { obs[x][y] = 0; });
+      });
+      yLabels.forEach(y => { colTotals[y] = 0; });
+
+      for (let [x, y] of pairs) {
+        obs[x][y]++;
+        rowTotals[x]++;
+        colTotals[y]++;
+      }
+
+      // 1. Observed Contingency Table + Marginals
+      let html = `<h3>A. Observed Contingency Table & Marginal Frequencies (N = ${N})</h3>`;
+      html += `<table><tr><th>X \\ Y</th>`;
+      yLabels.forEach(y => html += `<th>${y}</th>`);
+      html += `<th class="marginal">Row Total (Marginal P(X))</th></tr>`;
+
+      xLabels.forEach(x => {
+        html += `<tr><th>${x}</th>`;
+        yLabels.forEach(y => {
+          html += `<td>${obs[x][y]}</td>`;
+        });
+        let margX = (rowTotals[x] / N).toFixed(3);
+        html += `<td class="marginal">${rowTotals[x]} (${margX})</td></tr>`;
+      });
+
+      html += `<tr><th class="marginal">Col Total (Marginal P(Y))</th>`;
+      yLabels.forEach(y => {
+        let margY = (colTotals[y] / N).toFixed(3);
+        html += `<td class="marginal">${colTotals[y]} (${margY})</td>`;
+      });
+      html += `<td class="marginal">${N} (1.000)</td></tr></table>`;
+
+      // 2. Conditional Frequencies Table P(Y | X)
+      html += `<h3>B. Conditional Frequencies P(Y | X = x)</h3>`;
+      html += `<table><tr><th>X \\ Y</th>`;
+      yLabels.forEach(y => html += `<th>P(${y} | X)</th>`);
+      html += `<th>Row Sum</th></tr>`;
+
+      xLabels.forEach(x => {
+        html += `<tr><th>${x}</th>`;
+        yLabels.forEach(y => {
+          let cond = rowTotals[x] > 0 ? (obs[x][y] / rowTotals[x]).toFixed(3) : '0.000';
+          html += `<td>${cond}</td>`;
+        });
+        html += `<td class="marginal">1.000</td></tr>`;
+      });
+      html += `</table>`;
+
+      // 3. Expected Frequencies Table & Chi-Square Calculation
+      let chi2 = 0;
+      html += `<h3>C. Expected Frequencies Under Independence (E<sub>ij</sub> = R<sub>i</sub>·C<sub>j</sub> / N)</h3>`;
+      html += `<table><tr><th>X \\ Y</th>`;
+      yLabels.forEach(y => html += `<th>${y}</th>`);
+      html += `</tr>`;
+
+      xLabels.forEach(x => {
+        html += `<tr><th>${x}</th>`;
+        yLabels.forEach(y => {
+          let exp = (rowTotals[x] * colTotals[y]) / N;
+          if (exp > 0) {
+            chi2 += Math.pow(obs[x][y] - exp, 2) / exp;
+          }
+          html += `<td>${exp.toFixed(2)}</td>`;
+        });
+        html += `</tr>`;
+      });
+      html += `</table>`;
+
+      const df = (xLabels.length - 1) * (yLabels.length - 1);
+      const pVal = chiSquarePValue(chi2, df);
+      const isDependent = pVal < 0.05;
+
+      html += `<div class="output-box">
+        <strong>Chi-Square Statistic (χ²):</strong> ${chi2.toFixed(4)}<br>
+        <strong>Degrees of Freedom (df):</strong> ${df}<br>
+        <strong>P-value:</strong> ${pVal.toFixed(4)}<br><br>
+        <strong>Statistical Conclusion (α = 0.05):</strong> 
+        ${isDependent 
+          ? '<span style="color:#b91c1c; font-weight:bold;">Reject H₀ — Variables X and Y are STATISTICALLY DEPENDENT (p < 0.05).</span>' 
+          : '<span style="color:#15803d; font-weight:bold;">Fail to Reject H₀ — Variables X and Y appear STATISTICALLY INDEPENDENT (p ≥ 0.05).</span>'}
+      </div>`;
+
+      document.getElementById('tablesOutput').innerHTML = html;
+    }
+
+    // Initial run on load
+    analyzeDataset();
+  </script>
+
+</body>
+</html>
